@@ -46,10 +46,10 @@ if data is not None:
 
     # Basic plot using Plotly Express (adjust as needed)
     try:
-        # Ensure 'time' and 'geo\\time' columns are present
+        # Ensure 'time' and 'geo' columns are present
         if 'time' in data.columns and 'geo' in data.columns:
             fig = px.line(data, x='time', y='values', color='geo',
-                          title=f"Eurostat Data: {dataset_code}")
+                          title=f"Eurostat Data: {data.label}")
             st.plotly_chart(fig)
         else:
             st.warning("The dataset doesn't contain required columns ('time' or 'geo'). Adapt the plot accordingly.")
@@ -61,7 +61,7 @@ if data is not None:
 
     # Show raw data (optional)
     if st.checkbox("Show raw data"):
-        st.write(data.to_string())
+        st.write(data.head(15))
 else:
     st.write("Failed to retrieve data. Check the dataset code and internet connection.")
 
