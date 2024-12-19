@@ -40,6 +40,7 @@ selected_countries = st.multiselect("Select Countries", ['IE', 'DK', 'NL'])  # A
 
 # Get data, handling potential errors
 data = get_eurostat_data(dataset_code, params={'geo': selected_countries})
+label = data.label
 data = data.to_dataframe()
 
 if data is not None:
@@ -50,7 +51,7 @@ if data is not None:
         # Ensure 'time' and 'geo' columns are present
         if 'time' in data.columns and 'geo' in data.columns:
             fig = px.line(data, x='time', y='values', color='geo',
-                          title=f"Eurostat Data: {data.label}")
+                          title=f"Eurostat Data: {label}")
             st.plotly_chart(fig)
         else:
             st.warning("The dataset doesn't contain required columns ('time' or 'geo'). Adapt the plot accordingly.")
