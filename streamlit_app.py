@@ -39,9 +39,9 @@ dataset_code = "tag00070"
 selected_countries = st.multiselect("Select Countries", ['IE', 'DK', 'NL'])  # Allow user selection
 
 # Get data, handling potential errors
-data = get_eurostat_data(dataset_code, params={'geo': selected_countries})
-label = data.label
-data = data.to_dataframe()
+data_raw = get_eurostat_data(dataset_code, params={'geo': selected_countries})
+label = data_raw.label
+data = data_raw.to_dataframe()
 
 if data is not None:
     st.write("Data successfully retrieved!")
