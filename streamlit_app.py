@@ -47,12 +47,12 @@ if data is not None:
     # Basic plot using Plotly Express (adjust as needed)
     try:
         # Ensure 'time' and 'geo\\time' columns are present
-        if 'time' in data.columns and 'geo\\time' in data.columns:
-            fig = px.line(data, x='time', y='value', color='geo\\time',
+        if 'time' in data.columns and 'geo' in data.columns:
+            fig = px.line(data, x='time', y='values', color='geo',
                           title=f"Eurostat Data: {dataset_code}")
             st.plotly_chart(fig)
         else:
-            st.warning("The dataset doesn't contain required columns ('time' or 'geo\\time'). Adapt the plot accordingly.")
+            st.warning("The dataset doesn't contain required columns ('time' or 'geo'). Adapt the plot accordingly.")
 
     except KeyError as e:
         st.error(f"Error creating plot: Column '{e}' not found. Please inspect the raw data to see the available columns.")
