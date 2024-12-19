@@ -28,7 +28,7 @@ def get_eurostat_data(dataset_code, params={}):
     try:
         client = EurostatAPIClient(VERSION, FORMAT, LANGUAGE)
         dataset = client.get_dataset(dataset_code, params=params)
-        return dataset.to_dataframe()
+        return dataset
 
     except Exception as e:
         st.error(f"Error fetching data from Eurostat: {e}")
@@ -40,6 +40,7 @@ selected_countries = st.multiselect("Select Countries", ['IE', 'DK', 'NL'])  # A
 
 # Get data, handling potential errors
 data = get_eurostat_data(dataset_code, params={'geo': selected_countries})
+data = data.to_dataframe()
 
 if data is not None:
     st.write("Data successfully retrieved!")
