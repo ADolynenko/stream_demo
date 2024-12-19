@@ -1,92 +1,67 @@
 import streamlit as st
-import requests
 import pandas as pd
-import matplotlib.pyplot as plt
 import plotly.express as px
+from eurostatapiclient import EurostatAPIClient
 
-# Eurostat API Base URL
-EUROSTAT_API = "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/"
-CSO_API = "https://ws.cso.ie/public/api.jsonrpc"
+# Choose service version (currently 1.0)
+VERSION = '1.0'
 
-# Fetch data from Eurostat API
-def fetch_eurostat_data(dataset_id):
-    url = f"{EUROSTAT_API}{dataset_id}/all?format=csv"
-    response = requests.get(url)
-    if response.status_code == 200:
-        df = pd.read_csv(response.content.decode('utf-8'))
-        return df
-    else:
-        st.error("Failed to fetch data from Eurostat API.")
+# Only json is currently available
+FORMAT = 'json'
+
+# Specify language (default English)
+LANGUAGE = 'en'
+
+def get_eurostat_data(dataset_code, params={}):
+    """
+    Retrieves data from Eurostat using the EurostatAPIClient with error handling.
+
+    Args:
+        dataset_code (str): The Eurostat dataset code.
+        params (dict, optional): Additional parameters for the API call.
+            Defaults to {}.
+
+    Returns:
+        pandas.DataFrame: The retrieved data as a DataFrame, or None if an error occurs.
+    """
+
+    try:
+        client = EurostatAPIClient(VERSION, FORMAT, LANGUAGE)
+        dataset = client.get_dataset(dataset_code, params=params)
+        return dataset.to_dataframe()
+
+    except Exception as e:
+        st.error(f"Error fetching data from Eurostat: {e}")
         return None
 
-# Fetch data from CSO.ie API
-def fetch_cso_data():
-    headers = {'Content-Type': 'application/json'}
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "getDataset",
-        "params": {"datasetCode": "RAWMILK"},
-        "id": 1
-    }
-    response = requests.post(CSO_API, json=payload, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        return pd.DataFrame(data['result']['data'])
-    else:
-        st.error("Failed to fetch data from CSO.ie API.")
-        return None
+# Dataset code and optional filtering parameters
+dataset_code = "tag00070"
+selected_countries = st.multiselect("Select Countries", ['IE', 'DK', 'NL'])  # Allow user selection
 
-# Preprocess the data
-def preprocess_data(df, column_mapping):
-    df.rename(columns=column_mapping, inplace=True)
-    df['date'] = pd.to_datetime(df[['year', 'month']].assign(day=1))
-    df.set_index('date', inplace=True)
-    return df
+# Get data, handling potential errors
+data = get_eurostat_data(dataset_code, params={'geo': selected_countries})
 
-# Streamlit Dashboard
-def main():
-    st.title("Farmer Dashboard: Raw Milk Prices and Trends")
-    
-    # Sidebar
-    st.sidebar.header("Data Sources")
-    st.sidebar.markdown("- [Eurostat](https://ec.europa.eu/eurostat/)\n- [CSO.ie](https://www.cso.ie/en/)")
-    
-    # Load Eurostat Data
-    eurostat_id = st.sidebar.text_input("Eurostat Dataset ID:", "RAWMILK")
-    eurostat_data = fetch_eurostat_data(eurostat_id)
-    
-    if eurostat_data is not None:
-        st.subheader("Eurostat: Raw Milk Prices")
-        st.write("Latest Data Snapshot:")
-        st.dataframe(eurostat_data.head())
-        
-        # Visualization
-        fig = px.line(eurostat_data, x='time', y='value', title="Raw Milk Prices Over Time")
-        st.plotly_chart(fig)
-    
-    # Load CSO Data
-    st.subheader("CSO.ie: Raw Milk Prices (Ireland)")
-    cso_data = fetch_cso_data()
-    if cso_data is not None:
-        st.write("CSO Raw Milk Prices:")
-        st.dataframe(cso_data.head())
-        
-        # Additional Insights
-        avg_price = cso_data['value'].mean()
-        st.metric(label="Average Milk Price (EUR)", value=f"{avg_price:.2f}")
-        
-        # Visualization
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(cso_data['date'], cso_data['value'], label="Milk Price")
-        ax.set_title("Raw Milk Prices in Ireland")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Price (EUR)")
-        st.pyplot(fig)
+if data is not None:
+    st.write("Data successfully retrieved!")
 
-    # Insights and Recommendations
-    st.subheader("Insights and Recommendations")
-    st.write("This section can include insights derived from data trends, predictions, or key takeaways for farmers.")
+    # Basic plot using Plotly Express (adjust as needed)
+    try:
+        # Ensure 'time' and 'geo\\time' columns are present
+        if 'time' in data.columns and 'geo\\time' in data.columns:
+            fig = px.line(data, x='time', y='value', color='geo\\time',
+                          title=f"Eurostat Data: {dataset_code}")
+            st.plotly_chart(fig)
+        else:
+            st.warning("The dataset doesn't contain required columns ('time' or 'geo\\time'). Adapt the plot accordingly.")
 
-# Run the app
-if __name__ == "__main__":
-    main()
+    except KeyError as e:
+        st.error(f"Error creating plot: Column '{e}' not found. Please inspect the raw data to see the available columns.")
+    except Exception as e:
+        st.error(f"An error occurred during plotting: {e}")
+
+    # Show raw data (optional)
+    if st.checkbox("Show raw data"):
+        st.write(data.to_string())
+else:
+    st.write("Failed to retrieve data. Check the dataset code and internet connection.")
+
